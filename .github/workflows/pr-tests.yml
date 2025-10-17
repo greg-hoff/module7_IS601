@@ -1,0 +1,151 @@
+name: Pull Request Tests
+
+on:
+  pull_request:
+    branches: [ main, develop ]
+    types: [opened, synchronize, reopened]
+
+jobs:
+  code-quality:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.12'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install flake8 pylint black isort
+
+    - name: Run code formatting check (Black)
+      run: black --check --diff .
+
+    - name: Run import sorting check (isort)
+      run: isort --check-only --diff .
+
+    - name: Run linting (flake8)
+      run: flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+
+    - name: Run comprehensive linting (pylint)
+      run: pylint main.py || true  # Don't fail on pylint warnings
+
+  functional-tests:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        test-url:
+          - "https://github.com/greg-hoff/module7_IS601"
+          - "https://www.google.com"
+          - "https://python.org"
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.12'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+
+    - name: Test QR generation with URL - ${{ matrix.test-url }}
+      run: |
+        python main.py --url "${{ matrix.test-url }}" --output "test_${{ strategy.job-index }}.png"
+        if [ -f "test_${{ strategy.job-index }}.png" ]; then
+          echo "✅ QR code generated successfully for ${{ matrix.test-url }}"
+          ls -la test_*.png
+        else
+          echo "❌ Failed to generate QR code for ${{ matrix.test-url }}"
+          exit 1
+        fi
+
+  docker-build-test:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Build Docker image (no push)
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        file: ./Dockerfile
+        platforms: linux/amd64
+        push: false
+        tags: qr_codemaker:test
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+
+    - name: Test Docker image functionality
+      run: |
+        mkdir -p test_output
+        docker run --rm -v $(pwd)/test_output:/app/qr_codes qr_codemaker:test --url "https://github.com/greg-hoff/module7_IS601"
+        
+        # Check if QR code was created
+        if [ -f test_output/QRCode_*.png ]; then
+          echo "✅ Docker image test passed - QR code generated"
+          ls -la test_output/
+        else
+          echo "❌ Docker image test failed - no QR code found"
+          exit 1
+        fi
+
+  dependency-check:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.12'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install safety
+
+    - name: Check for security vulnerabilities in dependencies
+      run: safety check
+
+    - name: Verify all imports work
+      run: |
+        python -c "
+        import main
+        import qrcode
+        import PIL
+        from PIL import Image
+        print('✅ All imports successful')
+        "
+
+  pr-summary:
+    runs-on: ubuntu-latest
+    needs: [code-quality, functional-tests, docker-build-test, dependency-check]
+    if: always()
+    steps:
+    - name: PR Test Summary
+      run: |
+        echo "## 📋 Pull Request Test Summary" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "| Test Category | Status |" >> $GITHUB_STEP_SUMMARY
+        echo "|---------------|--------|" >> $GITHUB_STEP_SUMMARY
+        echo "| Code Quality | ${{ needs.code-quality.result == 'success' && '✅ Passed' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
+        echo "| Functional Tests | ${{ needs.functional-tests.result == 'success' && '✅ Passed' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
+        echo "| Docker Build | ${{ needs.docker-build-test.result == 'success' && '✅ Passed' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
+        echo "| Dependencies | ${{ needs.dependency-check.result == 'success' && '✅ Passed' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "**Overall Status:** ${{ (needs.code-quality.result == 'success' && needs.functional-tests.result == 'success' && needs.docker-build-test.result == 'success' && needs.dependency-check.result == 'success') && '✅ All tests passed! Ready to merge.' || '❌ Some tests failed. Please review and fix issues.' }}" >> $GITHUB_STEP_SUMMARY
