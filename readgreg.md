@@ -6,7 +6,7 @@
 # generated QRcodes for my own repos
 # pushed to repo
 # submitted links
-# further reading on dockerhub and containerization
+# further reading on dockerhub and containerization. read more about commands in Dockerfile
 
 ## Greg's Github Repo
 ![Github Repo](qr_codes/QRCode_20251017011803.png "My QR Link") 
