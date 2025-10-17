@@ -8,7 +8,7 @@ services:
     environment:
       - QR_CODE_DIR=/app/qr_codes
       - FILL_COLOR=aqua
-      - BACK_COLOR=blue
+      - BACK_COLOR=darkred
     volumes:
       - ./qr_codes:/app/qr_codes  # Maps the local 'qr_codes' directory to '/app/qr_codes' in the container
     command: --url https://github.com/greg-hoff/module7_IS601  # Replace 'main.py' with your script's filename if different
