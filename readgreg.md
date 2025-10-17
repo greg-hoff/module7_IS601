@@ -11,7 +11,7 @@
 # set up github actions to test code and docker functionality. fixed tests - looking for output, when none existed.
 
 ## Greg's Github Repo
-![Github Repo](qr_codes/QRCode_20251017011803.png "My QR Link") 
+![Github Repo](qr_codes/QRCode_20251017022422.png "My QR Link") 
 
 ## Greg's DockerHub Image
 ![Docker QR Image](qr_codes/QRCode_20251017011536.png "My QR Link") 
