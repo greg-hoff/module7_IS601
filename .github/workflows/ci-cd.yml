@@ -35,10 +35,10 @@ jobs:
         # Test QR code generation with a sample URL
         python main.py --url "https://github.com/greg-hoff/module7_IS601"
         
-        # Check if QR code file was created (timestamped filename)
-        if ls QRCode_*.png 1> /dev/null 2>&1; then
+        # Check if QR code file was created in the qr_codes directory
+        if ls qr_codes/QRCode_*.png 1> /dev/null 2>&1; then
           echo "QR code generation test passed"
-          ls -la QRCode_*.png
+          ls -la qr_codes/QRCode_*.png
         else
           echo "QR code generation test failed"
           exit 1

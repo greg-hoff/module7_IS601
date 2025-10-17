@@ -60,9 +60,9 @@ jobs:
     - name: Test QR generation with URL - ${{ matrix.test-url }}
       run: |
         python main.py --url "${{ matrix.test-url }}"
-        if ls QRCode_*.png 1> /dev/null 2>&1; then
+        if ls qr_codes/QRCode_*.png 1> /dev/null 2>&1; then
           echo "✅ QR code generated successfully for ${{ matrix.test-url }}"
-          ls -la QRCode_*.png
+          ls -la qr_codes/QRCode_*.png
         else
           echo "❌ Failed to generate QR code for ${{ matrix.test-url }}"
           exit 1
